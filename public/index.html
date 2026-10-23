@@ -59,15 +59,61 @@
   .toast.ok { border-left-color:var(--ok); } .toast.bad { border-left-color:var(--bad); }
   @keyframes tin { from { opacity:0; transform:translateY(8px); } }
   @media (max-width:560px) { main { padding:12px; } header { padding:14px 12px 0; } .tabs button { padding:8px 8px; font-size:13px; } }
+  /* ===== HUD theme ===== */
+  :root { --bg:#04070b; --card:#080d14; --fg:#d7f4ff; --mut:#6f8ba0; --ok:#2bff9a; --bad:#ff3b5c; --warn:#ffb000; --acc:#00e5ff; --line:#12303d; }
+  body { font:13px/1.5 "Cascadia Code","JetBrains Mono",Consolas,ui-monospace,monospace; background:
+    linear-gradient(rgba(0,229,255,.035) 1px,transparent 1px) 0 0/100% 3px,
+    radial-gradient(900px 500px at 50% -10%,#07303c 0%,transparent 65%),var(--bg) fixed; }
+  body::after { content:""; position:fixed; inset:0; pointer-events:none; z-index:50; background:radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,.55)); }
+  nav { background:rgba(4,7,11,.96); border-bottom:1px solid var(--acc); box-shadow:0 1px 18px rgba(0,229,255,.25); text-transform:uppercase; letter-spacing:.08em; font-size:12px; }
+  nav a { color:var(--mut); } nav a:hover, nav a.cur { color:var(--acc); text-shadow:0 0 8px var(--acc); }
+  .brand img { filter:drop-shadow(0 0 8px rgba(0,229,255,.5)); }
+  h1 { font-size:26px; letter-spacing:.12em; text-transform:uppercase; padding-top:14px; }
+  h1 span { color:var(--acc); text-shadow:0 0 12px var(--acc); } h1 em { font-style:normal; color:var(--warn); font-size:13px; letter-spacing:.3em; vertical-align:middle; margin-left:8px; }
+  p.sub { max-width:900px; }
+  main.hud { grid-template-columns:300px minmax(0,1fr) 380px; grid-template-areas:"ctrl stage side"; gap:14px; align-items:start; }
+  main.hud > section:nth-child(1) { grid-area:stage; position:sticky; top:62px; }
+  main.hud > section.ctrl { grid-area:ctrl; order:-1; }
+  main.hud > section:nth-child(3) { grid-area:side; }
+  @media (max-width:1280px) { main.hud { grid-template-columns:280px minmax(0,1fr); grid-template-areas:"ctrl stage" "side side"; } main.hud > section:nth-child(3) { grid-area:side; } }
+  @media (max-width:860px) { main.hud { grid-template-columns:1fr; grid-template-areas:"stage" "ctrl" "side"; } main.hud > section:nth-child(1) { position:static; } }
+  .card { background:linear-gradient(180deg,rgba(0,229,255,.05),transparent 40%),var(--card); border:1px solid var(--line); border-radius:0;
+    clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px)); box-shadow:none; position:relative; padding:16px; }
+  .card::before { content:""; position:absolute; left:0; top:0; width:3px; height:26px; background:var(--acc); box-shadow:0 0 10px var(--acc); }
+  h2 { color:var(--acc); font-size:11px; letter-spacing:.2em; margin-bottom:10px; }
+  canvas { border:1px solid var(--line); border-radius:0; background:#04090f; box-shadow:inset 0 0 40px rgba(0,229,255,.08); }
+  .legend { font-size:11px; text-transform:uppercase; letter-spacing:.05em; }
+  button { border-radius:0; background:transparent; border:1px solid #1d4a5c; color:var(--acc); text-transform:uppercase; letter-spacing:.06em; font-size:11px; padding:7px 10px; }
+  button:hover { background:rgba(0,229,255,.1); border-color:var(--acc); box-shadow:0 0 10px rgba(0,229,255,.35); }
+  button.primary { background:var(--acc); color:#001318; border-color:var(--acc); box-shadow:0 0 14px rgba(0,229,255,.45); }
+  button.danger { color:var(--bad); border-color:#5a1a28; } button.danger:hover { background:rgba(255,59,92,.12); border-color:var(--bad); box-shadow:0 0 10px rgba(255,59,92,.4); }
+  button.on { background:var(--warn); color:#1a1000; border-color:var(--warn); }
+  select, input[type=number] { border-radius:0; background:#050a10; border:1px solid #1d4a5c; color:var(--fg); }
+  input[type=range] { accent-color:var(--acc); width:100%; }
+  main.hud .ctrl .row { flex-direction:column; align-items:stretch; gap:8px; }
+  main.hud .ctrl .row > label { display:block; } main.hud .ctrl .row button { text-align:left; }
+  main.hud .ctrl .row select, main.hud .ctrl .row input[type=number] { width:100% !important; }
+  .tabs { flex-direction:column; gap:3px; border:0; margin-top:4px; }
+  .tabs button { text-align:left; border:1px solid var(--line); border-radius:0; color:var(--mut); }
+  .tabs button.on { background:rgba(0,229,255,.12); color:var(--acc); border-color:var(--acc); box-shadow:inset 3px 0 0 var(--acc); }
+  .pane { padding-top:10px; }
+  .hint { color:var(--mut); font-size:11px; border-left:2px solid var(--warn); padding-left:8px; margin-bottom:8px; }
+  th { color:var(--acc); font-size:11px; letter-spacing:.1em; text-transform:uppercase; font-weight:500; } th,td { border-bottom:1px solid var(--line); }
+  tr:hover td { background:rgba(0,229,255,.06); }
+  .pill { border-radius:0; border:1px solid currentColor; font-size:11px; letter-spacing:.1em; text-transform:uppercase; }
+  .stats > div { border-radius:0; background:#050a10; border:1px solid var(--line); } .stats b { color:var(--acc); text-shadow:0 0 10px rgba(0,229,255,.5); font-size:22px; }
+  .toast { border-radius:0; background:#07131b; border:1px solid var(--line); border-left:3px solid var(--acc); }
+  #log { height:240px; } .scroll { max-height:220px; }
+  ::-webkit-scrollbar { width:8px; height:8px; } ::-webkit-scrollbar-thumb { background:#12404f; } ::-webkit-scrollbar-track { background:#050a10; }
 </style>
 </head>
 <body>
 <header>
   <nav><a href="/" class="brand"><img src="/logo.png" alt="NodeArmor" height="34"></a><a href="/" class="cur">Live demo</a><a href="/about.html">What is this? (plain English)</a><span id="topstat" class="pill" style="margin-left:auto"></span></nav>
-  <h1>A shared bank book that works with no internet</h1>
+  <h1><span>//</span> Mesh Ledger <em>live operations</em></h1>
   <p class="sub">Seven radios pass signed money notes to whoever is in range. Packets get lost and nodes move, break and get attacked, yet the books still agree. <a href="/about.html">New here? Read the explainer →</a></p>
 </header>
-<main>
+<main class="hud">
   <section>
     <div class="card">
       <div class="legend">
@@ -77,6 +123,10 @@
         <span>Dashed circle = radio range · drag a node to move it · click it to switch off/on</span>
       </div>
       <canvas id="c" width="760" height="480"></canvas>
+    </div>
+  </section>
+  <section class="ctrl">
+    <div class="card"><h2>Control deck</h2>
 
       <div class="tabs" id="tabs">
         <button data-t="send" class="on">① Move money</button>

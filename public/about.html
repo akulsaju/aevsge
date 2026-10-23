@@ -17,6 +17,15 @@
   dt { font-weight:700; margin-top:12px; } dd { margin:2px 0 0; color:var(--mut); }
   .tag { font-size:12px; padding:2px 8px; border-radius:99px; background:#1f2a3c; color:var(--mut); margin-left:6px; }
   table { width:100%; border-collapse:collapse; } td,th { padding:6px 8px; border-bottom:1px solid #232d3d; text-align:left; vertical-align:top; }
+  :root { --bg:#04070b; --card:#080d14; --fg:#d7f4ff; --mut:#6f8ba0; --acc:#00e5ff; --line:#12303d; }
+  body { background:linear-gradient(rgba(0,229,255,.035) 1px,transparent 1px) 0 0/100% 3px,radial-gradient(900px 500px at 50% -10%,#07303c 0%,transparent 65%),var(--bg) fixed; font-family:"Cascadia Code",Consolas,ui-monospace,monospace; font-size:15px; }
+  nav { align-items:center; text-transform:uppercase; letter-spacing:.08em; font-size:12px; border-bottom:1px solid var(--acc); padding-bottom:10px; box-shadow:0 1px 18px rgba(0,229,255,.2); }
+  nav a:hover,nav a.cur { text-shadow:0 0 8px var(--acc); } .brand img { filter:drop-shadow(0 0 8px rgba(0,229,255,.5)); }
+  h1 { text-transform:uppercase; letter-spacing:.1em; font-size:26px; } h1::before { content:"// "; color:var(--acc); text-shadow:0 0 12px var(--acc); }
+  h2 { text-transform:uppercase; letter-spacing:.15em; font-size:15px; }
+  .box { border-radius:0; border:1px solid var(--line); border-left:3px solid var(--acc); background:linear-gradient(180deg,rgba(0,229,255,.05),transparent 50%),var(--card); }
+  .cta { border-radius:0; text-transform:uppercase; letter-spacing:.08em; box-shadow:0 0 16px rgba(0,229,255,.45); }
+  .tag { border-radius:0; border:1px solid var(--line); background:transparent; }
 </style>
 </head>
 <body>
