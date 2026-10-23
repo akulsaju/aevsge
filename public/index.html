@@ -37,6 +37,23 @@
   .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; text-align:center; }
   .stats b { display:block; font-size:20px; } .stats span { color:var(--mut); font-size:12px; }
   .mut { color:var(--mut); }
+  body { background:radial-gradient(1200px 600px at 20% -10%,#14233b 0%,var(--bg) 60%) fixed; }
+  .card { box-shadow:0 6px 24px rgba(0,0,0,.28); }
+  canvas { border:1px solid #1d2840; cursor:default; }
+  .tabs { display:flex; gap:4px; margin-top:12px; border-bottom:1px solid #232d3d; }
+  .tabs button { border:0; border-radius:6px 6px 0 0; background:transparent; color:var(--mut); padding:8px 14px; }
+  .tabs button.on { background:#1b2638; color:var(--fg); box-shadow:inset 0 -2px 0 var(--acc); }
+  .pane { padding-top:6px; } .pane[hidden] { display:none; }
+  .hint { color:var(--mut); font-size:12px; margin-top:6px; }
+  button { transition:border-color .15s, transform .05s, background .15s; } button:active { transform:translateY(1px); }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--acc); outline-offset:1px; }
+  .stats { gap:10px; } .stats > div { background:#0e1420; border:1px solid #1d2840; border-radius:8px; padding:8px 4px; }
+  tr:hover td { background:#18223a; }
+  #toasts { position:fixed; right:18px; bottom:18px; display:flex; flex-direction:column; gap:8px; z-index:10; pointer-events:none; }
+  .toast { background:#182236; border:1px solid #2d3b52; border-left:4px solid var(--acc); border-radius:8px; padding:8px 12px; max-width:340px; font-size:13px; box-shadow:0 6px 20px rgba(0,0,0,.4); animation:tin .2s ease-out; }
+  .toast.ok { border-left-color:var(--ok); } .toast.bad { border-left-color:var(--bad); }
+  @keyframes tin { from { opacity:0; transform:translateY(8px); } }
+  @media (max-width:560px) { main { padding:12px; } header { padding:14px 12px 0; } .tabs button { padding:8px 8px; font-size:13px; } }
 </style>
 </head>
 <body>
@@ -56,7 +73,13 @@
       </div>
       <canvas id="c" width="760" height="480"></canvas>
 
-      <h2 class="sec">① Move money (signed with a real ECDSA key)</h2>
+      <div class="tabs" id="tabs">
+        <button data-t="send" class="on">① Move money</button>
+        <button data-t="net">② Make it messy</button>
+        <button data-t="tools">③ Stories &amp; tools</button>
+      </div>
+      <div class="pane" data-p="send">
+      <div class="hint">Every payment is signed with a real ECDSA key. Then try the cheat buttons.</div>
       <div class="row">
         On node <select id="at"></select>
         <select id="from"><option>alice</option><option>bob</option><option>carol</option></select> pays
@@ -66,9 +89,10 @@
         <button id="bad" class="danger" title="Signed by a different key than the sender's">Cheat: forge signature</button>
         <button id="over" class="danger" title="Correctly signed but more than the sender owns">Cheat: overspend</button>
       </div>
-
-      <h2 class="sec">② Make the real world messy</h2>
-      <div class="row">
+              </div>
+              <div class="pane" data-p="net" hidden>
+              <div class="hint">Radios only reach so far, far links lose more packets, and nodes can move or die.</div>
+              <div class="row">
         <label title="Packet loss at the edge of radio range (nearer nodes lose less)">Loss at max range <input id="drop" type="range" min="0" max="95" value="80"> <b id="dropv">80%</b></label>
         <label title="How far each radio reaches">Radio range <input id="range" type="range" min="120" max="400" value="230"> <b id="rangev">230</b></label>
         <label>Speed <input id="speed" type="range" min="1" max="6" value="1"> <b id="speedv">1x</b></label>
@@ -79,16 +103,19 @@
         <button id="sybil" class="danger" title="A fake node floods the mesh with forged transactions">Attack: fake-node flood</button>
         <label title="Dangerous: nodes accept transactions without checking signatures"><input type="checkbox" id="unsafe"> Skip signature checks (unsafe)</label>
       </div>
-
-      <h2 class="sec">③ Stories &amp; tools</h2>
-      <div class="row">
+              </div>
+              <div class="pane" data-p="tools" hidden>
+              <div class="hint">One-click scenarios and server check.</div>
+              <div class="row">
         <button id="dspend" title="Alice spends the same 400 on both sides of a split">Story: spend the same money twice</button>
         <button id="verifyApi" title="Ask the Vercel server to verify a signature">Ask server to verify</button>
         <button id="reset">Reset everything</button>
       </div>
+      </div>
     </div>
   </section>
   <section>
+    <div id="toasts"></div>
     <div class="card">
       <h2>Do all online devices agree? <span id="status" class="pill"></span></h2>
       <div id="verdict" class="mut" style="margin-bottom:8px"></div>
@@ -173,7 +200,7 @@ class MNode {
       if(Number.isSafeInteger(t.lamport))this.lamport=Math.max(this.lamport,t.lamport);
       added++;
     }
-    if(added)this.dirty=true;
+    if(added){this.dirty=true;this.pulse=simNow;}
     return added;
   }
   // Balances are a pure function of the set of transactions, so any two nodes holding the same set agree
@@ -212,7 +239,18 @@ const crosses=(a,b)=>jam&&((a.x<JX)!==(b.x<JX));
 const linked=(a,b)=>a!==b&&a.online&&b.online&&dist(a,b)<=range()&&!crosses(a,b);
 const lossP=(a,b)=>Math.min(.99,($("drop").value/100)*(0.6+0.4*dist(a,b)/range()));
 
-function log(m,c=""){const d=document.createElement("div");d.className=c;d.textContent=`${new Date().toLocaleTimeString()}  ${m}`;$("log").prepend(d);while($("log").children.length>150)$("log").lastChild.remove();}
+function log(m,c=""){const d=document.createElement("div");d.className=c;d.textContent=`${new Date().toLocaleTimeString()}  ${m}`;$("log").prepend(d);while($("log").children.length>150)$("log").lastChild.remove();toast(m,c);}
+function toast(m,c){
+  const box=$("toasts");if(!box||!window.__ready)return;
+  const t=document.createElement("div");t.className="toast "+c;t.textContent=m;box.appendChild(t);
+  while(box.children.length>3)box.firstChild.remove();
+  setTimeout(()=>t.remove(),4200);
+}
+document.querySelectorAll("#tabs button").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll("#tabs button").forEach(x=>x.classList.toggle("on",x===b));
+  document.querySelectorAll(".pane").forEach(p=>{p.hidden=p.dataset.p!==b.dataset.t;});
+}));
+$("amt").addEventListener("keydown",e=>{if(e.key==="Enter")$("send").click();});
 
 function gossip(a){
   if(!a.online||!a.txs.size)return;
@@ -248,6 +286,9 @@ function step(dt){
 const cv=$("c"),ctx=cv.getContext("2d");
 function draw(){
   ctx.clearRect(0,0,W,H);
+  ctx.strokeStyle="rgba(88,166,255,.05)";ctx.lineWidth=1;
+  for(let x=0;x<=W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<=H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
   if(jam){ctx.strokeStyle="#f85149";ctx.setLineDash([6,6]);ctx.beginPath();ctx.moveTo(JX,0);ctx.lineTo(JX,H);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle="#f85149";ctx.font="11px system-ui";ctx.textAlign="center";ctx.fillText("jammed",JX,14);}
   const sel=hover||nodes.find(n=>n.id===$("view").value);
   if(sel){ctx.strokeStyle="rgba(88,166,255,.35)";ctx.setLineDash([4,5]);ctx.beginPath();ctx.arc(sel.x,sel.y,range(),0,7);ctx.stroke();ctx.setLineDash([]);}
@@ -260,27 +301,38 @@ function draw(){
   ctx.lineWidth=1;
   for(const p of packets){
     const f=Math.min(1,p.t/p.dur),x=p.a.x+(p.b.x-p.a.x)*f,y=p.a.y+(p.b.y-p.a.y)*f;
-    ctx.fillStyle=p.dead?"#f85149":p.a.id==="sybil"?"#d29922":"#58a6ff";
-    ctx.globalAlpha=p.dead?Math.max(0,1-f*1.6):1;ctx.beginPath();ctx.arc(x,y,p.dead?3:4,0,7);ctx.fill();
+    const col=p.dead?"#f85149":p.a.id==="sybil"?"#d29922":"#58a6ff";
+    const f0=Math.max(0,f-.12),x0=p.a.x+(p.b.x-p.a.x)*f0,y0=p.a.y+(p.b.y-p.a.y)*f0;
+    ctx.globalAlpha=p.dead?Math.max(0,1-f*1.6):1;
+    ctx.strokeStyle=col;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x,y);ctx.stroke();
+    ctx.shadowColor=col;ctx.shadowBlur=p.dead?0:10;ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,y,p.dead?3:4,0,7);ctx.fill();ctx.shadowBlur=0;
+    if(p.dead&&f>.2){ctx.font="bold 12px system-ui";ctx.textAlign="center";ctx.fillText("✕",x,y-6);}
   }
   ctx.globalAlpha=1;
   const keys=agreeInfo().keys;
   for(const n of nodes){
-    const off=!n.online;
-    ctx.fillStyle=off?"#2a1215":"#131a26";ctx.strokeStyle=off?"#f85149":(keys.get(n)===agreeInfo().ref?"#3fb950":"#d29922");ctx.lineWidth=2.5;
-    ctx.beginPath();ctx.arc(n.x,n.y,25,0,7);ctx.fill();ctx.stroke();
+    const off=!n.online,col=off?"#f85149":(keys.get(n)===agreeInfo().ref?"#3fb950":"#d29922");
+    const age=simNow-(n.pulse||-1e9);
+    if(!off&&age<900){ctx.strokeStyle=col;ctx.globalAlpha=1-age/900;ctx.lineWidth=3;ctx.beginPath();ctx.arc(n.x,n.y,25+age/900*22,0,7);ctx.stroke();ctx.globalAlpha=1;}
+    const g=ctx.createRadialGradient(n.x-8,n.y-8,3,n.x,n.y,26);
+    g.addColorStop(0,off?"#3a1a1e":"#1e2b44");g.addColorStop(1,off?"#1f0f12":"#0f1626");
+    ctx.shadowColor=col;ctx.shadowBlur=off?0:14;ctx.fillStyle=g;ctx.strokeStyle=col;ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.arc(n.x,n.y,25,0,7);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
     ctx.fillStyle="#e6edf3";ctx.font="bold 13px system-ui";ctx.textAlign="center";ctx.fillText(n.id,n.x,n.y-1);
     ctx.font="11px system-ui";ctx.fillStyle="#8b98a9";ctx.fillText(off?"offline":`${n.txs.size} tx`,n.x,n.y+13);
   }
+  const A=agreeInfo(),msg=A.ok?"✔ All online nodes agree":"… nodes are catching up";
+  ctx.font="bold 12px system-ui";const tw=ctx.measureText(msg).width+20;
+  ctx.fillStyle=A.ok?"rgba(18,54,28,.9)":"rgba(61,26,29,.9)";ctx.beginPath();ctx.roundRect(10,10,tw,24,12);ctx.fill();
+  ctx.fillStyle=A.ok?"#3fb950":"#f85149";ctx.textAlign="left";ctx.fillText(msg,20,26);
 }
 
 // ---------- agreement + panels ----------
 let _agree=null,_agreeAt=-1;
 function agreeInfo(){
   if(_agree&&_agreeAt===frame)return _agree;
-  const keys=new Map(),counts={};
-  for(const n of nodes){const k=[...n.txs.keys()].sort().join();keys.set(n,k);if(n.online)counts[k]=(counts[k]||0)+1;}
-  let ref=null,best=-1;for(const k in counts)if(counts[k]>best){best=counts[k];ref=k;}
+  const keys=new Map();let ref=null,best=-1;
+  for(const n of nodes){const k=[...n.txs.keys()].sort().join();keys.set(n,k);if(n.online&&n.txs.size>best){best=n.txs.size;ref=k;}}
   const online=nodes.filter(n=>n.online);
   _agree={keys,ref,ok:online.length>0&&online.every(n=>keys.get(n)===ref)};_agreeAt=frame;return _agree;
 }
@@ -365,7 +417,7 @@ const hit=p=>nodes.find(n=>Math.hypot(n.x-p.x,n.y-p.y)<28);
 cv.addEventListener("pointerdown",e=>{const p=pos(e),n=hit(p);if(n){drag={n,sx:p.x,sy:p.y,moved:false};n.drag=true;cv.setPointerCapture(e.pointerId);}});
 cv.addEventListener("pointermove",e=>{const p=pos(e);
   if(drag){if(Math.hypot(p.x-drag.sx,p.y-drag.sy)>5)drag.moved=true;if(drag.moved){drag.n.x=Math.max(28,Math.min(W-28,p.x));drag.n.y=Math.max(28,Math.min(H-28,p.y));}}
-  hover=hit(p)||null;});
+  hover=hit(p)||null;cv.style.cursor=hover?(drag?"grabbing":"grab"):"default";});
 cv.addEventListener("pointerup",()=>{if(!drag)return;const{n,moved}=drag;n.drag=false;drag=null;if(!moved){n.online=!n.online;log(`${n.id} ${n.online?"back online":"went offline"}`,n.online?"info":"bad");}});
 cv.addEventListener("pointerleave",()=>{hover=null;});
 
