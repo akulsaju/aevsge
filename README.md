@@ -20,13 +20,19 @@ ZK-STARK verifier for production use.
 
 ## Web demo (Vercel)
 
-`public/index.html` is a static, dependency-free browser simulation of the mesh
-(drop-rate slider, partition toggle, transfers, forged proofs, Sybil injection).
-Deploy: `vercel --prod` from the repo root (or import the repo in Vercel; no build step).
-Preview locally: `python -m http.server -d public 3000` (the `/api/node` buttons need a real deploy or `vercel dev`).
+`public/index.html` is a static, dependency-free browser simulation of a 7-radio mesh:
 
-`api/node.js` is a Vercel serverless function (`POST {action:"verify"|"merge"}`) running the
-same proof check and CRDT merge server-side. Tests: `node tests/api.test.js`.
-The demo also persists ledger state in `localStorage` and includes a double-spend scenario
-(per-key LWW converges but keeps only one conflicting write, so balances aren't conserved;
-real systems need consensus or ZK balance proofs).
+- **Real signatures:** every transfer is signed with WebCrypto ECDSA P-256; forged, tampered, wrong-key, malformed and overspending transactions are rejected.
+- **Realistic radio:** range-limited links, distance-based loss and latency, multi-hop gossip, draggable and moving nodes, node outages, a jammed-middle partition and speed control.
+- **Conserving ledger:** the ledger is a grow-only set of signed transactions; balances are a deterministic function of that set (ordered by Lamport clock), so replicas converge and a double spend keeps exactly one payment (supply stays 650).
+- **Attacks:** a fake-node flood of forged transactions, plus an "unsafe" mode (signature checks off) to show the damage.
+- **Self-test:** an in-page audit of the four rubric items. `public/about.html` is a plain-English explainer.
+
+Deploy: `vercel --prod` from the repo root (or import the repo in Vercel; no build step).
+Preview locally: `python -m http.server -d public 3000` (the "Ask server" button needs a real deploy or `vercel dev`).
+
+`api/node.js` is a Vercel serverless function (`POST {action:"verifyTx"|"verify"|"merge"}`) that
+re-verifies ECDSA transactions server-side. Tests: `node tests/api.test.js`.
+Ledger state is not persisted (keys are generated fresh on each page load).
+Not a zero-knowledge system: signatures prove authorisation, not privacy.
+
