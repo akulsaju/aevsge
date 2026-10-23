@@ -26,43 +26,61 @@
   #log .ok{color:var(--ok)} #log .bad{color:var(--bad)} #log .info{color:var(--acc)}
   h2 { font-size:13px; margin:0 0 8px; color:var(--mut); text-transform:uppercase; letter-spacing:.05em; }
   .pill { padding:2px 8px; border-radius:99px; font-weight:600; }
+  nav { display:flex; gap:16px; align-items:center; margin-bottom:12px; }
+  nav a { color:var(--mut); text-decoration:none; } nav a:hover,nav a.cur { color:var(--acc); }
+  .sub a { color:var(--acc); }
+  .legend { display:flex; flex-wrap:wrap; gap:14px; color:var(--mut); font-size:12px; margin-bottom:8px; }
+  .legend i { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; }
+  #audit { background:var(--acc); color:#04111f; font-weight:600; }
 </style>
 </head>
 <body>
 <header>
-  <h1>⏱ Cryptographic Singularity — Mesh Ledger</h1>
-  <p class="sub">Gossip mesh · proof verification stub · CRDT (LWW + Lamport) convergence · chaos &amp; Sybil testing. Runs entirely in your browser.</p>
+  <nav><b>⏱ Mesh Ledger</b><a href="/" class="cur">Live demo</a><a href="/about.html">What is this? (plain English)</a></nav>
+  <h1>A shared bank book that works with no internet</h1>
+  <p class="sub">5 phones/radios (circles) pass notes to each other. Most notes get lost. Watch them still end up agreeing. <a href="/about.html">New here? Read the 2‑minute explainer →</a></p>
 </header>
 <main>
   <section class="card">
-    <canvas id="c" width="720" height="460"></canvas>
-    <div class="row">
-      <label>Packet drop <input id="drop" type="range" min="0" max="95" value="80"> <b id="dropv">80%</b></label>
-      <button id="part">Partition: off</button>
-      <button id="sybil">Inject Sybil</button>
-      <label><input type="checkbox" id="trust" checked> Trusted-writer filter</label>
+    <div class="legend">
+      <span><i style="background:#58a6ff"></i>message delivered</span>
+      <span><i style="background:#f85149"></i>message lost</span>
+      <span><i style="background:#d29922"></i>fake node's message</span>
+      <span>Number in circle = <b>alice / bob</b> balance that node believes</span>
     </div>
+    <canvas id="c" width="720" height="460"></canvas>
+    <h2 style="margin-top:14px">① Move money</h2>
     <div class="row">
-      Transfer at
-      <select id="at"></select>
-      <select id="from"><option>alice</option><option>bob</option></select> →
+      On node <select id="at" title="Which device you are using"></select>
+      send from <select id="from"><option>alice</option><option>bob</option></select> to
       <select id="to"><option>bob</option><option>alice</option></select>
-      <input id="amt" type="number" min="1" value="25" style="width:70px">
-      <button id="send">Send</button>
-      <button id="bad">Send forged proof</button>
-      <button id="reset">Reset</button>
-      <button id="verifyApi">Verify on server</button>
-      <button id="dspend">Double-spend demo</button>
-      <span style="color:var(--mut)">Tip: click a node to take it offline.</span>
+      amount <input id="amt" type="number" min="1" value="25" style="width:70px">
+      <button id="send" title="A real, correctly signed transfer">Send</button>
+      <button id="bad" title="A transfer with a fake proof; should be rejected">Try to cheat (fake proof)</button>
+    </div>
+    <h2 style="margin-top:14px">② Break the network</h2>
+    <div class="row">
+      <label title="Chance each message is lost on the way">Messages lost <input id="drop" type="range" min="0" max="95" value="80"> <b id="dropv">80%</b></label>
+      <button id="part" title="Cut the network into two groups that can't talk">Split network: off</button>
+      <button id="sybil" title="An imposter flood of fake messages">Attack with fake node</button>
+      <label title="Only accept updates from known nodes"><input type="checkbox" id="trust" checked> Block unknown nodes</label>
+    </div>
+    <div class="row" style="color:var(--mut)">Tip: click a circle to switch that device off/on.</div>
+    <h2 style="margin-top:14px">③ One‑click stories &amp; tools</h2>
+    <div class="row">
+      <button id="dspend" title="Same money spent twice on both sides of a split">Story: spend the same money twice</button>
+      <button id="verifyApi" title="Ask the Vercel server to check a proof">Ask server to check proof</button>
+      <button id="reset">Reset everything</button>
     </div>
   </section>
   <section>
-    <div class="card"><h2>Status <span id="status" class="pill"></span></h2>
+    <div class="card"><h2>Do all devices agree? <span id="status" class="pill"></span></h2>
+      <div id="verdict" style="margin-bottom:8px;color:var(--mut)"></div>
       <table id="tbl"></table></div>
-    <div class="card" style="margin-top:16px"><h2>Rubric audit</h2>
+    <div class="card" style="margin-top:16px"><h2>Self‑test (grades the 4 requirements)</h2>
       <button id="audit">Run automated audit</button>
       <div id="auditOut" style="margin-top:8px;font-size:13px"></div></div>
-    <div class="card" style="margin-top:16px"><h2>Event log</h2><div id="log"></div></div>
+    <div class="card" style="margin-top:16px"><h2>What just happened</h2><div id="log"></div></div>
   </section>
 </main>
 <script>
@@ -161,7 +179,8 @@ function draw(){
 
 function table(){
   const ok=converged(), st=$("status");
-  st.textContent=ok?"converged":"diverged";st.style.background=ok?"#12361c":"#3d1a1d";st.style.color=ok?"var(--ok)":"var(--bad)";
+  st.textContent=ok?"✔ yes":"✘ not yet";st.style.background=ok?"#12361c":"#3d1a1d";st.style.color=ok?"var(--ok)":"var(--bad)";
+  $("verdict").textContent=ok?"Every device shows the same balances.":"Devices disagree (red numbers). Wait: messages keep trying to get through.";
   const ref=nodes[0].state();
   $("tbl").innerHTML="<tr><th>Node</th><th>alice</th><th>bob</th><th>lamport</th></tr>"+nodes.map(n=>{
     const s=n.state();
@@ -184,7 +203,7 @@ async function doSend(forge){
 $("send").onclick=()=>doSend(false);
 $("bad").onclick=()=>doSend(true);
 $("drop").oninput=e=>{$("dropv").textContent=e.target.value+"%";};
-$("part").onclick=e=>{partition=!partition;e.target.textContent="Partition: "+(partition?"on":"off");e.target.classList.toggle("on",partition);log(partition?"Network partitioned: {n1,n2} | {n3,n4,n5}":"Partition healed — reconciling","info");};
+$("part").onclick=e=>{partition=!partition;e.target.textContent="Split network: "+(partition?"on":"off");e.target.classList.toggle("on",partition);log(partition?"Network partitioned: {n1,n2} | {n3,n4,n5}":"Partition healed — reconciling","info");};
 $("sybil").onclick=()=>{
   const msg={clock:{sybil:99},state:{alice:[1e9,1e6,"sybil"]}};
   const fake={id:"sybil",x:360,y:10};
