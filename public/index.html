@@ -3,288 +3,428 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Cryptographic Singularity — Mesh Ledger Demo</title>
+<title>Mesh Ledger — live demo</title>
 <style>
-  :root { color-scheme: dark; --bg:#0b0f17; --card:#131a26; --fg:#e6edf3; --mut:#8b98a9; --ok:#3fb950; --bad:#f85149; --acc:#58a6ff; }
+  :root { color-scheme: dark; --bg:#0b0f17; --card:#131a26; --fg:#e6edf3; --mut:#8b98a9; --ok:#3fb950; --bad:#f85149; --warn:#d29922; --acc:#58a6ff; }
   * { box-sizing: border-box; }
   body { margin:0; font:14px/1.5 system-ui,sans-serif; background:var(--bg); color:var(--fg); }
   header { padding:20px 24px 0; }
-  h1 { margin:0; font-size:22px; } p.sub { margin:4px 0 0; color:var(--mut); }
-  main { display:grid; grid-template-columns:minmax(0,1.4fr) minmax(0,1fr); gap:16px; padding:16px 24px 24px; }
-  @media (max-width:900px){ main{grid-template-columns:1fr;} }
-  .card { background:var(--card); border:1px solid #232d3d; border-radius:10px; padding:14px; }
-  canvas { width:100%; height:auto; background:#0e1420; border-radius:8px; display:block; }
-  .row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:10px; }
-  button { background:#1f2a3c; color:var(--fg); border:1px solid #2d3b52; border-radius:6px; padding:6px 12px; cursor:pointer; font:inherit; }
-  button:hover { border-color:var(--acc); } button.on { background:var(--acc); color:#04111f; }
-  select, input[type=number] { background:#0e1420; color:var(--fg); border:1px solid #2d3b52; border-radius:6px; padding:5px; font:inherit; }
-  input[type=range] { width:160px; }
-  table { width:100%; border-collapse:collapse; } th,td { text-align:right; padding:3px 6px; border-bottom:1px solid #232d3d; }
-  th:first-child,td:first-child { text-align:left; }
-  td.diff { color:var(--bad); }
-  #log { height:220px; overflow:auto; font:12px ui-monospace,Consolas,monospace; color:var(--mut); }
-  #log .ok{color:var(--ok)} #log .bad{color:var(--bad)} #log .info{color:var(--acc)}
-  h2 { font-size:13px; margin:0 0 8px; color:var(--mut); text-transform:uppercase; letter-spacing:.05em; }
-  .pill { padding:2px 8px; border-radius:99px; font-weight:600; }
+  h1 { margin:0; font-size:22px; } p.sub { margin:4px 0 0; color:var(--mut); } .sub a { color:var(--acc); }
   nav { display:flex; gap:16px; align-items:center; margin-bottom:12px; }
   nav a { color:var(--mut); text-decoration:none; } nav a:hover,nav a.cur { color:var(--acc); }
-  .sub a { color:var(--acc); }
+  main { display:grid; grid-template-columns:minmax(0,1.5fr) minmax(0,1fr); gap:16px; padding:16px 24px 24px; }
+  @media (max-width:980px){ main{grid-template-columns:1fr;} }
+  .card { background:var(--card); border:1px solid #232d3d; border-radius:10px; padding:14px; margin-bottom:16px; }
+  main > section > .card:last-child { margin-bottom:0; }
+  canvas { width:100%; height:auto; background:#0e1420; border-radius:8px; display:block; touch-action:none; }
+  .row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:8px; }
+  button { background:#1f2a3c; color:var(--fg); border:1px solid #2d3b52; border-radius:6px; padding:6px 12px; cursor:pointer; font:inherit; }
+  button:hover { border-color:var(--acc); } button.on { background:var(--acc); color:#04111f; }
+  button.primary { background:var(--acc); color:#04111f; font-weight:600; }
+  button.danger:hover { border-color:var(--bad); }
+  select, input[type=number] { background:#0e1420; color:var(--fg); border:1px solid #2d3b52; border-radius:6px; padding:5px; font:inherit; }
+  input[type=range] { width:130px; vertical-align:middle; }
+  table { width:100%; border-collapse:collapse; } th,td { text-align:right; padding:3px 6px; border-bottom:1px solid #232d3d; }
+  th:first-child,td:first-child { text-align:left; } td.diff { color:var(--bad); } td.off { color:var(--mut); }
+  .scroll { max-height:200px; overflow:auto; font:12px ui-monospace,Consolas,monospace; }
+  #log { height:200px; overflow:auto; font:12px ui-monospace,Consolas,monospace; color:var(--mut); }
+  #log .ok,.s-applied{color:var(--ok)} #log .bad,.s-rejected{color:var(--bad)} #log .info{color:var(--acc)} .s-waiting{color:var(--warn)}
+  h2 { font-size:13px; margin:0 0 8px; color:var(--mut); text-transform:uppercase; letter-spacing:.05em; }
+  h2.sec { margin-top:14px; }
+  .pill { padding:2px 8px; border-radius:99px; font-weight:600; }
   .legend { display:flex; flex-wrap:wrap; gap:14px; color:var(--mut); font-size:12px; margin-bottom:8px; }
   .legend i { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; }
-  #audit { background:var(--acc); color:#04111f; font-weight:600; }
+  .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; text-align:center; }
+  .stats b { display:block; font-size:20px; } .stats span { color:var(--mut); font-size:12px; }
+  .mut { color:var(--mut); }
 </style>
 </head>
 <body>
 <header>
   <nav><b>⏱ Mesh Ledger</b><a href="/" class="cur">Live demo</a><a href="/about.html">What is this? (plain English)</a></nav>
   <h1>A shared bank book that works with no internet</h1>
-  <p class="sub">5 phones/radios (circles) pass notes to each other. Most notes get lost. Watch them still end up agreeing. <a href="/about.html">New here? Read the 2‑minute explainer →</a></p>
+  <p class="sub">Seven radios pass signed money notes to whoever is in range. Packets get lost and nodes move, break and get attacked, yet the books still agree. <a href="/about.html">New here? Read the explainer →</a></p>
 </header>
 <main>
-  <section class="card">
-    <div class="legend">
-      <span><i style="background:#58a6ff"></i>message delivered</span>
-      <span><i style="background:#f85149"></i>message lost</span>
-      <span><i style="background:#d29922"></i>fake node's message</span>
-      <span>Number in circle = <b>alice / bob</b> balance that node believes</span>
-    </div>
-    <canvas id="c" width="720" height="460"></canvas>
-    <h2 style="margin-top:14px">① Move money</h2>
-    <div class="row">
-      On node <select id="at" title="Which device you are using"></select>
-      send from <select id="from"><option>alice</option><option>bob</option></select> to
-      <select id="to"><option>bob</option><option>alice</option></select>
-      amount <input id="amt" type="number" min="1" value="25" style="width:70px">
-      <button id="send" title="A real, correctly signed transfer">Send</button>
-      <button id="bad" title="A transfer with a fake proof; should be rejected">Try to cheat (fake proof)</button>
-    </div>
-    <h2 style="margin-top:14px">② Break the network</h2>
-    <div class="row">
-      <label title="Chance each message is lost on the way">Messages lost <input id="drop" type="range" min="0" max="95" value="80"> <b id="dropv">80%</b></label>
-      <button id="part" title="Cut the network into two groups that can't talk">Split network: off</button>
-      <button id="sybil" title="An imposter flood of fake messages">Attack with fake node</button>
-      <label title="Only accept updates from known nodes"><input type="checkbox" id="trust" checked> Block unknown nodes</label>
-    </div>
-    <div class="row" style="color:var(--mut)">Tip: click a circle to switch that device off/on.</div>
-    <h2 style="margin-top:14px">③ One‑click stories &amp; tools</h2>
-    <div class="row">
-      <button id="dspend" title="Same money spent twice on both sides of a split">Story: spend the same money twice</button>
-      <button id="verifyApi" title="Ask the Vercel server to check a proof">Ask server to check proof</button>
-      <button id="reset">Reset everything</button>
+  <section>
+    <div class="card">
+      <div class="legend">
+        <span><i style="background:#58a6ff"></i>packet delivered</span>
+        <span><i style="background:#f85149"></i>packet lost</span>
+        <span><i style="background:#d29922"></i>attacker packet</span>
+        <span>Dashed circle = radio range · drag a node to move it · click it to switch off/on</span>
+      </div>
+      <canvas id="c" width="760" height="480"></canvas>
+
+      <h2 class="sec">① Move money (signed with a real ECDSA key)</h2>
+      <div class="row">
+        On node <select id="at"></select>
+        <select id="from"><option>alice</option><option>bob</option><option>carol</option></select> pays
+        <select id="to"><option>bob</option><option>alice</option><option>carol</option></select>
+        <input id="amt" type="number" min="1" value="25" style="width:70px">
+        <button id="send" class="primary" title="A properly signed transfer">Send</button>
+        <button id="bad" class="danger" title="Signed by a different key than the sender's">Cheat: forge signature</button>
+        <button id="over" class="danger" title="Correctly signed but more than the sender owns">Cheat: overspend</button>
+      </div>
+
+      <h2 class="sec">② Make the real world messy</h2>
+      <div class="row">
+        <label title="Packet loss at the edge of radio range (nearer nodes lose less)">Loss at max range <input id="drop" type="range" min="0" max="95" value="80"> <b id="dropv">80%</b></label>
+        <label title="How far each radio reaches">Radio range <input id="range" type="range" min="120" max="400" value="230"> <b id="rangev">230</b></label>
+        <label>Speed <input id="speed" type="range" min="1" max="6" value="1"> <b id="speedv">1x</b></label>
+      </div>
+      <div class="row">
+        <button id="part" title="Jam the middle of the map: nothing crosses the dashed red line">Jam the middle: off</button>
+        <label title="Nodes wander randomly, like people carrying phones"><input type="checkbox" id="move"> Nodes move</label>
+        <button id="sybil" class="danger" title="A fake node floods the mesh with forged transactions">Attack: fake-node flood</button>
+        <label title="Dangerous: nodes accept transactions without checking signatures"><input type="checkbox" id="unsafe"> Skip signature checks (unsafe)</label>
+      </div>
+
+      <h2 class="sec">③ Stories &amp; tools</h2>
+      <div class="row">
+        <button id="dspend" title="Alice spends the same 400 on both sides of a split">Story: spend the same money twice</button>
+        <button id="verifyApi" title="Ask the Vercel server to verify a signature">Ask server to verify</button>
+        <button id="reset">Reset everything</button>
+      </div>
     </div>
   </section>
   <section>
-    <div class="card"><h2>Do all devices agree? <span id="status" class="pill"></span></h2>
-      <div id="verdict" style="margin-bottom:8px;color:var(--mut)"></div>
-      <table id="tbl"></table></div>
-    <div class="card" style="margin-top:16px"><h2>Self‑test (grades the 4 requirements)</h2>
-      <button id="audit">Run automated audit</button>
-      <div id="auditOut" style="margin-top:8px;font-size:13px"></div></div>
-    <div class="card" style="margin-top:16px"><h2>What just happened</h2><div id="log"></div></div>
+    <div class="card">
+      <h2>Do all online devices agree? <span id="status" class="pill"></span></h2>
+      <div id="verdict" class="mut" style="margin-bottom:8px"></div>
+      <table id="tbl"></table>
+      <div class="stats" style="margin-top:12px">
+        <div><b id="stSent">0</b><span>packets sent</span></div>
+        <div><b id="stDel">0</b><span>delivered</span></div>
+        <div><b id="stLost">0</b><span>lost</span></div>
+        <div><b id="stBlock">0</b><span>forgeries blocked</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Ledger as seen by <select id="view"></select></h2>
+      <div class="scroll" id="hist"></div>
+    </div>
+    <div class="card">
+      <h2>Self-test (grades the requirements)</h2>
+      <button id="audit" class="primary">Run automated audit</button>
+      <div id="auditOut" style="margin-top:8px;font-size:13px"></div>
+    </div>
+    <div class="card">
+      <h2>What just happened</h2><div id="log"></div>
+    </div>
   </section>
 </main>
 <script>
 "use strict";
-async function sha256(s){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");}
-const proofHash=(s,r,a,n)=>sha256(`${s}|${r}|${a}|${n}`);
-
-class Node {
-  constructor(id,x,y){this.id=id;this.x=x;this.y=y;this.reset();}
-  reset(){this.ledger={alice:[500,0,""],bob:[100,0,""]};this.clock={[this.id]:0};this.lamport=0;this.seen=new Set();}
-  state(){const o={};for(const k in this.ledger)o[k]=this.ledger[k][0];return o;}
-  async verify(p){
-    if(!p||typeof p!=="object")return false;
-    const {sender:s,receiver:r,amount:a,nonce:n,proof_hash:h}=p;
-    if(typeof s!=="string"||typeof r!=="string"||typeof h!=="string")return false;
-    if(!Number.isInteger(a)||!Number.isInteger(n)||a<=0||s===r||this.seen.has(n))return false;
-    return h===await proofHash(s,r,a,n);
-  }
-  async transfer(p){
-    if(!await this.verify(p))return "rejected: invalid proof";
-    if((this.ledger[p.sender]?.[0]??0)<p.amount)return "rejected: insufficient funds";
-    this.seen.add(p.nonce);this.clock[this.id]=(this.clock[this.id]||0)+1;this.lamport++;
-    for(const [acct,d] of [[p.sender,-p.amount],[p.receiver,p.amount]]){
-      const cur=this.ledger[acct]?.[0]??0;this.ledger[acct]=[cur+d,this.lamport,this.id];}
-    return "ok";
-  }
-  merge(msg,trusted){
-    for(const n in msg.clock) if(!trusted||trusted.has(n)) this.clock[n]=Math.max(this.clock[n]||0,msg.clock[n]);
-    for(const u in msg.state){
-      const [bal,ts,w]=msg.state[u];
-      if(trusted&&w&&!trusted.has(w))continue;
-      const cur=this.ledger[u];
-      if(!cur||ts>cur[1]||(ts===cur[1]&&w>cur[2]))this.ledger[u]=[bal,ts,w];
-      this.lamport=Math.max(this.lamport,ts);
-    }
-  }
-}
-
-const IDS=["n1","n2","n3","n4","n5"], TRUSTED=new Set(IDS);
-const cv=document.getElementById("c"), ctx=cv.getContext("2d");
-const nodes=IDS.map((id,i)=>{const a=-Math.PI/2+i*2*Math.PI/IDS.length;return new Node(id,360+Math.cos(a)*170,230+Math.sin(a)*160);});
-let packets=[], partition=false;
 const $=id=>document.getElementById(id);
-$("at").innerHTML=IDS.map(i=>`<option>${i}</option>`).join("");
-const groupOf=n=>nodes.indexOf(n)<2?0:1;
-const linked=(a,b)=>a.online!==false&&b.online!==false&&(!partition||groupOf(a)===groupOf(b));
-const dropRate=()=>$("drop").value/100;
+const enc=new TextEncoder();
+const hex=b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");
+const sha=async s=>hex(await crypto.subtle.digest("SHA-256",enc.encode(s)));
+const ALG={name:"ECDSA",namedCurve:"P-256"}, SIGALG={name:"ECDSA",hash:"SHA-256"};
 
-function log(msg,cls=""){const d=document.createElement("div");d.className=cls;d.textContent=`${new Date().toLocaleTimeString()}  ${msg}`;$("log").prepend(d);while($("log").children.length>150)$("log").lastChild.remove();}
-
-function send(from,to,msg){
-  if(Math.random()<dropRate()){packets.push({from,to,t:0,dead:true});return;}
-  packets.push({from,to,t:0,msg});
+// ---------- crypto ----------
+const accIdCache=new Map(), pubCache=new Map(), sigCache=new Map();
+async function accId(pub){const k=pub.x+"."+pub.y;if(!accIdCache.has(k))accIdCache.set(k,(await sha(k)).slice(0,16));return accIdCache.get(k);}
+async function genKey(){
+  const kp=await crypto.subtle.generateKey(ALG,true,["sign","verify"]);
+  const j=await crypto.subtle.exportKey("jwk",kp.publicKey);
+  return {priv:kp.privateKey,jwk:{kty:j.kty,crv:j.crv,x:j.x,y:j.y}};
 }
-function gossip(){
-  for(const a of nodes){
-    const msg={clock:{...a.clock},state:JSON.parse(JSON.stringify(a.ledger))};
-    for(const b of nodes) if(a!==b&&linked(a,b)) send(a,b,msg);
+const signMsg=async(priv,msg)=>hex(await crypto.subtle.sign(SIGALG,priv,enc.encode(msg)));
+async function verifySig(jwk,sigHex,msg){
+  const k=jwk.x+"."+jwk.y;
+  if(!pubCache.has(k))pubCache.set(k,await crypto.subtle.importKey("jwk",jwk,ALG,false,["verify"]));
+  return crypto.subtle.verify(SIGALG,pubCache.get(k),new Uint8Array(sigHex.match(/../g).map(h=>parseInt(h,16))),enc.encode(msg));
+}
+const txMsg=t=>`${t.from}|${t.to}|${t.amount}|${t.seq}|${t.lamport}`;
+// Returns null if the transaction is authentic, otherwise the reason it is not
+async function check(t){
+  if(!t||typeof t!=="object")return "malformed";
+  const ck=[t.id,t.sig,t.from,t.to,t.amount,t.seq,t.lamport,t.pub&&t.pub.x,t.pub&&t.pub.y].join("|");
+  if(sigCache.has(ck))return sigCache.get(ck);
+  let r=null;
+  try{
+    if(typeof t.from!=="string"||typeof t.to!=="string"||t.to.length>64||t.from===t.to)r="malformed";
+    else if(!Number.isSafeInteger(t.amount)||t.amount<=0||!Number.isSafeInteger(t.seq)||t.seq<1||!Number.isSafeInteger(t.lamport)||t.lamport<0)r="malformed";
+    else if(!t.pub||typeof t.pub.x!=="string"||typeof t.pub.y!=="string"||typeof t.sig!=="string"||!/^[0-9a-f]{128}$/.test(t.sig))r="malformed";
+    else if(await accId(t.pub)!==t.from)r="key does not belong to sender";
+    else if(!await verifySig(t.pub,t.sig,txMsg(t)))r="bad signature";
+    else if((await sha(txMsg(t)+t.sig)).slice(0,16)!==t.id)r="wrong transaction id";
+  }catch{r="malformed";}
+  sigCache.set(ck,r);return r;
+}
+
+// ---------- world state ----------
+let KEYS={}, ACC={}, NAME={}, GENESIS={};
+const SUPPLY=()=>Object.values(GENESIS).reduce((a,b)=>a+b,0);
+const nameOf=id=>NAME[id]||("?"+String(id).slice(0,4));
+const stats={sent:0,delivered:0,lost:0,blocked:new Set()};
+
+class MNode {
+  constructor(id,x,y){this.id=id;this.x=x;this.y=y;this.vx=0;this.vy=0;this.online=true;this.reset();}
+  reset(){this.txs=new Map();this.lamport=0;this.dirty=true;this._c=null;this.nextGossip=Math.random()*800;}
+  async receive(list,verify=true){
+    let added=0;
+    if(!Array.isArray(list))return 0;
+    for(const t of list){
+      if(!t||typeof t!=="object"||typeof t.id!=="string"||this.txs.has(t.id))continue;
+      if(verify){const r=await check(t);if(r){stats.blocked.add(t.id);continue;}}
+      this.txs.set(t.id,t);
+      if(Number.isSafeInteger(t.lamport))this.lamport=Math.max(this.lamport,t.lamport);
+      added++;
+    }
+    if(added)this.dirty=true;
+    return added;
+  }
+  // Balances are a pure function of the set of transactions, so any two nodes holding the same set agree
+  compute(){
+    if(!this.dirty&&this._c)return this._c;
+    const bal={...GENESIS},seqs={},status=new Map();
+    const order=[...this.txs.values()].sort((a,b)=>a.lamport-b.lamport||(a.id<b.id?-1:1));
+    for(const t of order){
+      const exp=(seqs[t.from]||0)+1;
+      if(t.seq<exp){status.set(t.id,{s:"rejected",why:"double spend: that sequence number was already used"});continue;}
+      if(t.seq>exp){status.set(t.id,{s:"waiting",why:"waiting for an earlier transaction"});continue;}
+      if((bal[t.from]||0)<t.amount){status.set(t.id,{s:"rejected",why:"insufficient funds"});continue;}
+      bal[t.from]-=t.amount;bal[t.to]=(bal[t.to]||0)+t.amount;seqs[t.from]=exp;
+      status.set(t.id,{s:"applied",why:""});
+    }
+    this._c={bal,seqs,status,order};this.dirty=false;return this._c;
   }
 }
-setInterval(gossip,800);
 
-function step(){
+async function makeTx(node,fromName,toName,amount,signKey){
+  const from=ACC[fromName],to=ACC[toName]||toName,c=node.compute();
+  const t={from,to,amount,seq:(c.seqs[from]||0)+1,lamport:node.lamport+1,pub:KEYS[fromName].jwk};
+  t.sig=await signMsg((signKey||KEYS[fromName]).priv,txMsg(t));
+  t.id=(await sha(txMsg(t)+t.sig)).slice(0,16);
+  return t;
+}
+
+// ---------- network simulation ----------
+const W=760,H=480,JX=W/2;
+const SEED=[[90,240],[230,110],[250,370],[420,190],[470,410],[630,120],[670,330]];
+const nodes=SEED.map(([x,y],i)=>new MNode("n"+(i+1),x,y));
+let packets=[],jam=false,lastTx=0,simNow=0,wasAgree=true,hover=null;
+const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+const range=()=>+$("range").value;
+const crosses=(a,b)=>jam&&((a.x<JX)!==(b.x<JX));
+const linked=(a,b)=>a!==b&&a.online&&b.online&&dist(a,b)<=range()&&!crosses(a,b);
+const lossP=(a,b)=>Math.min(.99,($("drop").value/100)*(0.6+0.4*dist(a,b)/range()));
+
+function log(m,c=""){const d=document.createElement("div");d.className=c;d.textContent=`${new Date().toLocaleTimeString()}  ${m}`;$("log").prepend(d);while($("log").children.length>150)$("log").lastChild.remove();}
+
+function gossip(a){
+  if(!a.online||!a.txs.size)return;
+  const payload=[...a.txs.values()];
+  for(const b of nodes){
+    if(!linked(a,b))continue;
+    stats.sent++;
+    const dur=250+dist(a,b)*2.2;
+    if(Math.random()<lossP(a,b)){stats.lost++;packets.push({a,b,t:0,dur,dead:true});}
+    else packets.push({a,b,t:0,dur,payload});
+  }
+}
+function step(dt){
+  simNow+=dt;
+  for(const n of nodes){
+    if($("move").checked&&!n.drag){
+      n.vx=Math.max(-.05,Math.min(.05,n.vx+(Math.random()-.5)*.004*dt/16));n.vy=Math.max(-.05,Math.min(.05,n.vy+(Math.random()-.5)*.004*dt/16));
+      n.x=Math.max(30,Math.min(W-30,n.x+n.vx*dt));n.y=Math.max(30,Math.min(H-30,n.y+n.vy*dt));
+      if(n.x<=30||n.x>=W-30)n.vx*=-1;if(n.y<=30||n.y>=H-30)n.vy*=-1;
+    }
+    n.nextGossip-=dt;
+    if(n.nextGossip<=0){n.nextGossip=1000*(0.7+0.6*Math.random());gossip(n);}
+  }
   for(const p of packets){
-    p.t+=p.dead?0.025:0.03;
-    if(!p.dead&&p.t>=1&&!p.done){p.done=true;p.to.merge(p.msg,$("trust").checked?TRUSTED:null);}
-    if(p.dead&&p.t>=0.5)p.done=true;
+    p.t+=dt;
+    if(p.dead){if(p.t>=p.dur*.6)p.done=true;continue;}
+    if(p.t>=p.dur){p.done=true;if(p.b.online){stats.delivered++;p.b.receive(p.payload,!$("unsafe").checked);}}
   }
   packets=packets.filter(p=>!p.done);
 }
 
-function converged(){return new Set(nodes.map(n=>JSON.stringify(n.state()))).size===1;}
-
+// ---------- rendering ----------
+const cv=$("c"),ctx=cv.getContext("2d");
 function draw(){
-  ctx.clearRect(0,0,cv.width,cv.height);
+  ctx.clearRect(0,0,W,H);
+  if(jam){ctx.strokeStyle="#f85149";ctx.setLineDash([6,6]);ctx.beginPath();ctx.moveTo(JX,0);ctx.lineTo(JX,H);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle="#f85149";ctx.font="11px system-ui";ctx.textAlign="center";ctx.fillText("jammed",JX,14);}
+  const sel=hover||nodes.find(n=>n.id===$("view").value);
+  if(sel){ctx.strokeStyle="rgba(88,166,255,.35)";ctx.setLineDash([4,5]);ctx.beginPath();ctx.arc(sel.x,sel.y,range(),0,7);ctx.stroke();ctx.setLineDash([]);}
   for(let i=0;i<nodes.length;i++)for(let j=i+1;j<nodes.length;j++){
-    const ok=linked(nodes[i],nodes[j]);
-    ctx.strokeStyle=ok?"#243047":"#3a1d22";ctx.setLineDash(ok?[]:[4,6]);
+    if(!linked(nodes[i],nodes[j]))continue;
+    const q=1-lossP(nodes[i],nodes[j]);
+    ctx.strokeStyle=`rgba(88,166,255,${.08+.3*q})`;ctx.lineWidth=1+q;
     ctx.beginPath();ctx.moveTo(nodes[i].x,nodes[i].y);ctx.lineTo(nodes[j].x,nodes[j].y);ctx.stroke();
   }
-  ctx.setLineDash([]);
+  ctx.lineWidth=1;
   for(const p of packets){
-    const x=p.from.x+(p.to.x-p.from.x)*p.t,y=p.from.y+(p.to.y-p.from.y)*p.t;
-    ctx.fillStyle=p.dead?"#f85149":p.from.id==="sybil"?"#d29922":"#58a6ff";ctx.globalAlpha=p.dead?Math.max(0,1-p.t*2):1;
-    ctx.beginPath();ctx.arc(x,y,p.dead?3:4,0,7);ctx.fill();
+    const f=Math.min(1,p.t/p.dur),x=p.a.x+(p.b.x-p.a.x)*f,y=p.a.y+(p.b.y-p.a.y)*f;
+    ctx.fillStyle=p.dead?"#f85149":p.a.id==="sybil"?"#d29922":"#58a6ff";
+    ctx.globalAlpha=p.dead?Math.max(0,1-f*1.6):1;ctx.beginPath();ctx.arc(x,y,p.dead?3:4,0,7);ctx.fill();
   }
   ctx.globalAlpha=1;
+  const keys=agreeInfo().keys;
   for(const n of nodes){
-    ctx.fillStyle=n.online===false?"#2a1215":"#131a26";ctx.strokeStyle=n.online===false?"#f85149":partition&&groupOf(n)?"#d29922":"#58a6ff";ctx.lineWidth=2;
-    ctx.beginPath();ctx.arc(n.x,n.y,30,0,7);ctx.fill();ctx.stroke();
-    ctx.fillStyle="#e6edf3";ctx.font="bold 13px system-ui";ctx.textAlign="center";
-    ctx.fillText(n.id,n.x,n.y-2);ctx.font="11px system-ui";ctx.fillStyle="#8b98a9";
-    ctx.fillText(`${n.ledger.alice[0]} / ${n.ledger.bob[0]}`,n.x,n.y+12);
+    const off=!n.online;
+    ctx.fillStyle=off?"#2a1215":"#131a26";ctx.strokeStyle=off?"#f85149":(keys.get(n)===agreeInfo().ref?"#3fb950":"#d29922");ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.arc(n.x,n.y,25,0,7);ctx.fill();ctx.stroke();
+    ctx.fillStyle="#e6edf3";ctx.font="bold 13px system-ui";ctx.textAlign="center";ctx.fillText(n.id,n.x,n.y-1);
+    ctx.font="11px system-ui";ctx.fillStyle="#8b98a9";ctx.fillText(off?"offline":`${n.txs.size} tx`,n.x,n.y+13);
   }
 }
 
-function table(){
-  const ok=converged(), st=$("status");
+// ---------- agreement + panels ----------
+let _agree=null,_agreeAt=-1;
+function agreeInfo(){
+  if(_agree&&_agreeAt===frame)return _agree;
+  const keys=new Map(),counts={};
+  for(const n of nodes){const k=[...n.txs.keys()].sort().join();keys.set(n,k);if(n.online)counts[k]=(counts[k]||0)+1;}
+  let ref=null,best=-1;for(const k in counts)if(counts[k]>best){best=counts[k];ref=k;}
+  const online=nodes.filter(n=>n.online);
+  _agree={keys,ref,ok:online.length>0&&online.every(n=>keys.get(n)===ref)};_agreeAt=frame;return _agree;
+}
+let frame=0;
+function renderPanels(){
+  const A=agreeInfo(),ok=A.ok,st=$("status");
   st.textContent=ok?"✔ yes":"✘ not yet";st.style.background=ok?"#12361c":"#3d1a1d";st.style.color=ok?"var(--ok)":"var(--bad)";
-  $("verdict").textContent=ok?"Every device shows the same balances.":"Devices disagree (red numbers). Wait: messages keep trying to get through.";
-  const ref=nodes[0].state();
-  $("tbl").innerHTML="<tr><th>Node</th><th>alice</th><th>bob</th><th>lamport</th></tr>"+nodes.map(n=>{
-    const s=n.state();
-    return `<tr><td>${n.id}</td><td class="${s.alice!==ref.alice?"diff":""}">${s.alice}</td><td class="${s.bob!==ref.bob?"diff":""}">${s.bob}</td><td>${n.lamport}</td></tr>`;}).join("");
+  $("verdict").textContent=ok?"Every online device holds the same transactions, so the balances match.":"Some devices are missing transactions (red). Gossip keeps retrying; they catch up when they get a path.";
+  if(ok&&!wasAgree&&lastTx){log(`Agreement reached ${((simNow-lastTx)/1000).toFixed(1)}s (sim time) after the last transaction`,"ok");}
+  wasAgree=ok;
+  const refNode=nodes.find(n=>n.online&&A.keys.get(n)===A.ref),rb=refNode?refNode.compute().bal:{};
+  const cols=["alice","bob","carol"];
+  $("tbl").innerHTML="<tr><th>Node</th>"+cols.map(c=>`<th>${c}</th>`).join("")+"<th>total</th><th>tx</th></tr>"+nodes.map(n=>{
+    const b=n.compute().bal,tot=Object.values(b).reduce((s,v)=>s+v,0),cls=n.online?"":"off";
+    const cell=nm=>{const d=n.online&&refNode&&b[ACC[nm]]!==rb[ACC[nm]];return `<td class="${n.online?d?"diff":"":cls}">${b[ACC[nm]]??0}</td>`;};
+    return `<tr><td>${n.id}${n.online?"":" (off)"}</td>${cols.map(cell).join("")}<td class="${tot!==SUPPLY()?"diff":cls}">${tot}</td><td class="${cls}">${n.txs.size}</td></tr>`;
+  }).join("");
+  $("stSent").textContent=stats.sent;$("stDel").textContent=stats.delivered;$("stLost").textContent=stats.lost+(stats.sent?` (${Math.round(100*stats.lost/stats.sent)}%)`:"");$("stBlock").textContent=stats.blocked.size;
+  const v=nodes.find(n=>n.id===$("view").value)||nodes[0],c=v.compute();
+  $("hist").innerHTML=c.order.length?[...c.order].reverse().map(t=>{const s=c.status.get(t.id);
+    return `<div><span class="s-${s.s}">${s.s}</span> ${nameOf(t.from)} → ${nameOf(t.to)} ${t.amount} <span class="mut">#${t.seq} L${t.lamport}${s.why?" — "+s.why:""}</span></div>`;}).join(""):'<span class="mut">No transactions yet. Press Send.</span>';
 }
 
-(function loop(){step();draw();table();requestAnimationFrame(loop);})();
-
+// ---------- actions ----------
 const byId=id=>nodes.find(n=>n.id===id);
-async function makeProof(s,r,a,forge){
-  const nonce=Math.floor(Math.random()*2**48);
-  return {sender:s,receiver:r,amount:a,nonce,proof_hash:forge?"0".repeat(64):await proofHash(s,r,a,nonce)};
+async function submit(node,tx,label){
+  const r=$("unsafe").checked?null:await check(tx);
+  if(r){stats.blocked.add(tx.id);log(`${node.id}: ${label} — BLOCKED (${r})`,"bad");return false;}
+  await node.receive([tx],!$("unsafe").checked);lastTx=simNow;
+  const s=node.compute().status.get(tx.id);
+  log(`${node.id}: ${label} — ${s.s}${s.why?" ("+s.why+")":""}`,s.s==="applied"?"ok":"bad");
+  return s.s==="applied";
 }
-async function doSend(forge){
-  const n=byId($("at").value),s=$("from").value,r=$("to").value,a=parseInt($("amt").value,10);
-  if(n.online===false){log(`${n.id} is offline — click it to bring it back`,"bad");return;}
-  const res=await n.transfer(await makeProof(s,r,a,forge));
-  log(`${n.id}: ${s}→${r} ${a}${forge?" (forged proof)":""} — ${res}`,res==="ok"?"ok":"bad");
+async function doSend(kind){
+  const n=byId($("at").value),from=$("from").value,to=$("to").value;let amt=parseInt($("amt").value,10);
+  if(!n.online){log(`${n.id} is offline. Click it to switch it on.`,"bad");return;}
+  if(from===to){log("Pick two different accounts.","bad");return;}
+  if(!(amt>0)){log("Amount must be a positive whole number.","bad");return;}
+  if(kind==="over")amt=(n.compute().bal[ACC[from]]||0)+1000;
+  const tx=await makeTx(n,from,to,amt,kind==="forge"?KEYS.mallory:null);
+  await submit(n,tx,`${from}→${to} ${amt}${kind==="forge"?" with a forged signature":kind==="over"?" (overspend)":""}`);
 }
-$("send").onclick=()=>doSend(false);
-$("bad").onclick=()=>doSend(true);
+$("send").onclick=()=>doSend("ok");$("bad").onclick=()=>doSend("forge");$("over").onclick=()=>doSend("over");
 $("drop").oninput=e=>{$("dropv").textContent=e.target.value+"%";};
-$("part").onclick=e=>{partition=!partition;e.target.textContent="Split network: "+(partition?"on":"off");e.target.classList.toggle("on",partition);log(partition?"Network partitioned: {n1,n2} | {n3,n4,n5}":"Partition healed — reconciling","info");};
-$("sybil").onclick=()=>{
-  const msg={clock:{sybil:99},state:{alice:[1e9,1e6,"sybil"]}};
-  const fake={id:"sybil",x:360,y:10};
-  for(const n of nodes)for(let i=0;i<3;i++)packets.push({from:fake,to:n,t:0,msg});
-  log($("trust").checked?"Sybil flood sent — rejected (untrusted writer)":"Sybil flood sent — filter OFF, ledger poisoned!",$("trust").checked?"info":"bad");
+$("range").oninput=e=>{$("rangev").textContent=e.target.value;};
+$("speed").oninput=e=>{$("speedv").textContent=e.target.value+"x";};
+function setJam(v){jam=v;$("part").textContent="Jam the middle: "+(jam?"on":"off");$("part").classList.toggle("on",jam);}
+$("part").onclick=()=>{setJam(!jam);log(jam?"Middle jammed: left and right halves cannot talk":"Jamming stopped: halves reconnect","info");};
+$("sybil").onclick=async()=>{
+  const fake={id:"sybil",x:JX,y:6};const targets=nodes.filter(n=>n.online).sort(()=>Math.random()-.5).slice(0,3);
+  for(const t of targets){
+    const drain=await makeTx(t,"alice","mallory",450,KEYS.mallory);drain.to=ACC.mallory;
+    drain.sig=await signMsg(KEYS.mallory.priv,txMsg(drain));drain.id=(await sha(txMsg(drain)+drain.sig)).slice(0,16);
+    const junk=Array.from({length:12},(_,i)=>({...drain,amount:1+i,id:hex(crypto.getRandomValues(new Uint8Array(8))),sig:hex(crypto.getRandomValues(new Uint8Array(64)))}));
+    packets.push({a:fake,b:t,t:0,dur:700,payload:[drain,...junk]});
+  }
+  log($("unsafe").checked?"Fake node sent a forged 'drain alice' transaction. Signature checks are OFF, so it will spread!":"Fake node flooded 3 devices with 39 forged transactions; signatures will not verify","info");
 };
-$("reset").onclick=()=>{nodes.forEach(n=>{n.reset();n.online=true;});packets=[];log("Reset","info");};
-cv.onclick=e=>{
-  const r=cv.getBoundingClientRect(),x=(e.clientX-r.left)*cv.width/r.width,y=(e.clientY-r.top)*cv.height/r.height;
-  const n=nodes.find(n=>Math.hypot(n.x-x,n.y-y)<32);
-  if(n){n.online=n.online===false;log(`${n.id} ${n.online?"back online":"went offline"}`,n.online?"info":"bad");}
+$("dspend").onclick=async()=>{
+  resetAll();setJam(true);
+  log("Story: the middle is jammed. Alice (500) pays bob 400 on n1 AND carol 400 on n4.","info");
+  const a=byId("n1"),b=byId("n4");
+  await submit(a,await makeTx(a,"alice","bob",400),"alice→bob 400");
+  await submit(b,await makeTx(b,"alice","carol",400),"alice→carol 400");
+  setTimeout(()=>{setJam(false);log("Jam lifted. Both halves swap transactions; a deterministic rule keeps ONE spend and rejects the other, so no money is created.","info");},5000);
 };
+async function api(body){const r=await fetch("/api/node",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});if(!r.ok)throw new Error("HTTP "+r.status);return r.json();}
+$("verifyApi").onclick=async()=>{
+  try{
+    const n=nodes[0],good=await makeTx(n,"alice","bob",5),bad=await makeTx(n,"alice","bob",5,KEYS.mallory);
+    const g=await api({action:"verifyTx",tx:good}),b=await api({action:"verifyTx",tx:bad});
+    log(`Server check: real signature → ${g.valid}; forged → ${b.valid} (${b.reason})`,g.valid&&!b.valid?"ok":"bad");
+  }catch(e){log("Server API unavailable (static preview). Deploy to Vercel to enable: "+e.message,"bad");}
+};
+function resetAll(){nodes.forEach((n,i)=>{n.reset();n.online=true;n.x=SEED[i][0];n.y=SEED[i][1];n.vx=n.vy=0;});packets=[];stats.sent=stats.delivered=stats.lost=0;stats.blocked.clear();setJam(false);lastTx=0;wasAgree=true;}
+$("reset").onclick=()=>{resetAll();log("Reset","info");};
 
-// Headless audit mirroring the 4 scoring-rubric items (simulated rounds, no UI side effects)
-function audit(){
-  const out=[];const rnd=()=>Math.random();
-  const mk=n=>Array.from({length:n},(_,i)=>new Node("a"+i,0,0));
-  const snap=a=>({clock:{...a.clock},state:JSON.parse(JSON.stringify(a.ledger))});
-  const round=(ns,drop,ok=()=>true)=>{for(const a of ns)for(const b of ns)if(a!==b&&ok(a,b)&&rnd()>=drop)b.merge(snap(a),null);};
-  const same=ns=>new Set(ns.map(n=>JSON.stringify(n.state()))).size===1;
-  return (async()=>{
-    // 1. connectivity: lossless gossip propagates a transfer to all nodes
-    let ns=mk(4);await ns[0].transfer(await makeProof("alice","bob",50,false));
-    for(let i=0;i<3;i++)round(ns,0);
-    out.push(["Mesh connectivity (30%)",same(ns)&&ns[3].state().bob===150,"transfer reached all 4 nodes"]);
-    // 2. proof validation
-    ns=mk(1);const good=await makeProof("alice","bob",10,false),bad=await makeProof("alice","bob",10,true);
-    const r=[await ns[0].transfer(good),await ns[0].transfer(good),await ns[0].transfer(bad),await ns[0].transfer(null),await ns[0].transfer(await makeProof("alice","bob",99999,false))];
-    out.push(["Proof verification (30%)",r[0]==="ok"&&r.slice(1).every(x=>x!=="ok"),"valid accepted; replay, forged, null, overdraft rejected"]);
-    // 3. partition then reconcile
-    ns=mk(4);const A=n=>ns.indexOf(n)<2;
-    await ns[0].transfer(await makeProof("alice","bob",100,false));await ns[3].transfer(await makeProof("bob","alice",20,false));
-    for(let i=0;i<5;i++)round(ns,0,(a,b)=>A(a)===A(b));
-    const split=!same(ns);let k=0;while(!same(ns)&&k<50){round(ns,0);k++;}
-    out.push(["CRDT convergence (25%)",split&&same(ns),`diverged while split, converged ${k} round(s) after heal`]);
-    // 4. chaos: 80% loss
-    ns=mk(5);await ns[0].transfer(await makeProof("alice","bob",30,false));k=0;
-    while(!same(ns)&&k<500){round(ns,0.8);k++;}
-    out.push(["Chaos survival (15%)",same(ns),`converged in ${k} rounds at 80% packet loss, no crash`]);
-    return out;
-  })();
+// dragging: move a node; a click without movement toggles it on/off
+let drag=null;
+const pos=e=>{const r=cv.getBoundingClientRect();return {x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height};};
+const hit=p=>nodes.find(n=>Math.hypot(n.x-p.x,n.y-p.y)<28);
+cv.addEventListener("pointerdown",e=>{const p=pos(e),n=hit(p);if(n){drag={n,sx:p.x,sy:p.y,moved:false};n.drag=true;cv.setPointerCapture(e.pointerId);}});
+cv.addEventListener("pointermove",e=>{const p=pos(e);
+  if(drag){if(Math.hypot(p.x-drag.sx,p.y-drag.sy)>5)drag.moved=true;if(drag.moved){drag.n.x=Math.max(28,Math.min(W-28,p.x));drag.n.y=Math.max(28,Math.min(H-28,p.y));}}
+  hover=hit(p)||null;});
+cv.addEventListener("pointerup",()=>{if(!drag)return;const{n,moved}=drag;n.drag=false;drag=null;if(!moved){n.online=!n.online;log(`${n.id} ${n.online?"back online":"went offline"}`,n.online?"info":"bad");}});
+cv.addEventListener("pointerleave",()=>{hover=null;});
+
+// ---------- headless audit ----------
+async function audit(){
+  const out=[],mk=n=>Array.from({length:n},(_,i)=>new MNode("t"+i,0,0));
+  const key=n=>[...n.txs.keys()].sort().join()+JSON.stringify(Object.entries(n.compute().bal).sort());
+  const same=ns=>new Set(ns.map(key)).size===1;
+  const total=n=>Object.values(n.compute().bal).reduce((s,v)=>s+v,0);
+  const sync=async(a,b,loss)=>{if(Math.random()>=loss)await b.receive([...a.txs.values()],true);};
+  try{
+    // 1. Mesh connectivity: multi-hop over a chain where only neighbours are in range
+    let ns=mk(4);await ns[0].receive([await makeTx(ns[0],"alice","bob",50)]);
+    let rounds=0;while(!same(ns)&&rounds<20){const snaps=ns.map(n=>[...n.txs.values()]);for(let i=0;i<3;i++){await ns[i+1].receive(snaps[i]);await ns[i].receive(snaps[i+1]);}rounds++;}
+    out.push(["Mesh connectivity (30%)",same(ns)&&rounds===3&&ns[3].compute().bal[ACC.bob]===150,`transfer crossed 3 hops in ${rounds} gossip round(s)`]);
+    // 2. Signature verification
+    ns=mk(1);const n0=ns[0],good=await makeTx(n0,"alice","bob",10);
+    const tamper={...good,amount:11},forged=await makeTx(n0,"alice","bob",10,KEYS.mallory),wrongKey={...good,pub:KEYS.bob.jwk};
+    const res=[await check(good),await check(tamper),await check(forged),await check(wrongKey),await check({id:"x"}),await check(null)].map(x=>x===null);
+    await n0.receive([good,good],true);
+    const over=await makeTx(n0,"bob","alice",99999);await n0.receive([over]);
+    out.push(["Proof / signature verification (30%)",res[0]&&res.slice(1).every(x=>!x)&&n0.txs.size===2&&n0.compute().status.get(over.id).s==="rejected"&&n0.compute().bal[ACC.alice]===490,"valid signature accepted; tampered, forged, wrong-key, malformed rejected; replay deduped; overspend rejected"]);
+    // 3. Partition + double spend reconciles and conserves money
+    ns=mk(4);const L=ns.slice(0,2),R=ns.slice(2);
+    const t1=await makeTx(ns[0],"alice","bob",400),t2=await makeTx(ns[3],"alice","carol",400);
+    await ns[0].receive([t1]);await ns[3].receive([t2]);
+    for(let i=0;i<5;i++){for(const g of [L,R]){await sync(g[0],g[1],0);await sync(g[1],g[0],0);}}
+    const split=!same(ns);let k=0;while(!same(ns)&&k<30){for(let i=0;i<4;i++)for(let j=0;j<4;j++)if(i!==j)await sync(ns[i],ns[j],0);k++;}
+    const st=ns.map(n=>[t1,t2].filter(t=>n.compute().status.get(t.id).s==="applied").length);
+    out.push(["CRDT state convergence (25%)",split&&same(ns)&&st.every(x=>x===1)&&total(ns[0])===SUPPLY(),`diverged while split; after heal exactly 1 of 2 conflicting spends applied; supply stays ${SUPPLY()}`]);
+    // 4. Chaos: 80% loss on a ring plus junk
+    ns=mk(6);for(let i=0;i<6;i+=2)await ns[i].receive([await makeTx(ns[i],["alice","bob","carol"][i/2],"bob"===["alice","bob","carol"][i/2]?"carol":"bob",5+i)]);
+    k=0;let crashed=false;
+    try{while(!same(ns)&&k<3000){for(let i=0;i<6;i++){await sync(ns[i],ns[(i+1)%6],.8);await sync(ns[(i+1)%6],ns[i],.8);}
+      await ns[k%6].receive([{id:"junk"},null,42,{id:"j2",sig:"zz"}],true);k++;}}catch{crashed=true;}
+    out.push(["Chaos survival (15%)",!crashed&&same(ns)&&total(ns[0])===SUPPLY(),`converged in ${k} rounds at 80% loss with junk packets injected, no crash`]);
+  }catch(e){out.push(["Audit crashed",false,String(e)]);}
+  return out;
 }
 $("audit").onclick=async()=>{
   $("auditOut").textContent="Running…";
   const res=await audit(),pass=res.filter(x=>x[1]).length;
-  $("auditOut").innerHTML=res.map(([n,ok,d])=>`<div><span style="color:var(--${ok?"ok":"bad"})">${ok?"PASS":"FAIL"}</span> ${n} <span style="color:var(--mut)">— ${d}</span></div>`).join("")+`<b>${pass}/${res.length} passed</b>`;
+  $("auditOut").innerHTML=res.map(([n,ok,d])=>`<div><span style="color:var(--${ok?"ok":"bad"})">${ok?"PASS":"FAIL"}</span> ${n} <span class="mut">— ${d}</span></div>`).join("")+`<b>${pass}/${res.length} passed</b>`;
   log(`Audit: ${pass}/${res.length} passed`,pass===res.length?"ok":"bad");
 };
-window.__audit=audit;
+window.__audit=audit;window.__nodes=nodes;
 
-async function api(body){
-  const r=await fetch("/api/node",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
-  if(!r.ok)throw new Error("HTTP "+r.status);
-  return r.json();
-}
-$("verifyApi").onclick=async()=>{
-  const s=$("from").value,r=$("to").value,a=parseInt($("amt").value,10);
-  try{
-    const good=await api({action:"verify",proof:await makeProof(s,r,a,false)});
-    const bad=await api({action:"verify",proof:await makeProof(s,r,a,true)});
-    log(`Server verify: valid proof → ${good.valid}; forged → ${bad.valid} (${bad.reason})`,good.valid&&!bad.valid?"ok":"bad");
-  }catch(e){log("Server API unavailable (static preview) — deploy to Vercel to enable: "+e.message,"bad");}
-};
-
-// Double spend: alice (500) sends 400 on each side of a partition; CRDT converges to a single winner
-$("dspend").onclick=async()=>{
-  nodes.forEach(n=>{n.reset();n.online=true;});packets=[];
-  if(!partition)$("part").click();
-  log("Double-spend: alice sends 400 at n1 AND 400 at n4 while partitioned","info");
-  log("n1: "+await nodes[0].transfer(await makeProof("alice","bob",400,false)),"ok");
-  log("n4: "+await nodes[3].transfer(await makeProof("alice","bob",400,false)),"ok");
-  setTimeout(()=>{if(partition)$("part").click();log("Healed. Mesh converges to one value (LWW keeps one write; real systems need consensus/ZK balance proofs to prevent double spends).","info");},2500);
-};
-
-// persistence
-const KEY="mesh-ledger-v1";
-function save(){try{localStorage.setItem(KEY,JSON.stringify(nodes.map(n=>({l:n.ledger,c:n.clock,t:n.lamport,s:[...n.seen]}))));}catch{}}
-(function load(){try{const d=JSON.parse(localStorage.getItem(KEY)||"null");if(d&&d.length===nodes.length){d.forEach((x,i)=>{nodes[i].ledger=x.l;nodes[i].clock=x.c;nodes[i].lamport=x.t;nodes[i].seen=new Set(x.s);});log("Restored saved ledger state","info");}}catch{}})();
-setInterval(save,1500);
-$("reset").addEventListener("click",()=>{localStorage.removeItem(KEY);});
-log("Mesh online. 80% packet loss active.","info");
+// ---------- boot ----------
+(async()=>{
+  $("at").innerHTML=$("view").innerHTML=nodes.map(n=>`<option>${n.id}</option>`).join("");
+  log("Generating ECDSA P-256 keys…","info");
+  for(const nm of ["alice","bob","carol","mallory"]){KEYS[nm]=await genKey();ACC[nm]=await accId(KEYS[nm].jwk);NAME[ACC[nm]]=nm;}
+  GENESIS={[ACC.alice]:500,[ACC.bob]:100,[ACC.carol]:50};
+  log("Mesh online: 7 nodes, 650 total supply, real signatures, 80% edge packet loss.","info");
+  let last=performance.now();
+  (function loop(now){const dt=Math.min(50,now-last)*(+$("speed").value);last=now;frame++;step(dt);draw();requestAnimationFrame(loop);})(last);
+  setInterval(renderPanels,250);
+  window.__ready=true;
+})();
 </script>
 </body>
 </html>

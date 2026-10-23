@@ -43,33 +43,40 @@
   <table>
     <tr><th>Idea</th><th>Simple version</th><th>Try it</th></tr>
     <tr><td><b>Mesh</b><span class="tag">30%</span></td><td>Devices talk directly to each other. No central server needed.</td><td>Press <i>Send</i>, watch dots fly.</td></tr>
-    <tr><td><b>Proof check</b><span class="tag">30%</span></td><td>Each transfer carries a "stamp" (a fingerprint of its details). Change anything and the stamp no longer matches, so it's rejected. A stamp can't be reused (no replays) and you can't send more than you have.<br><i>Honest note: this is a simple stand-in for a real zero-knowledge proof, which is much more advanced.</i></td><td>Press <i>Try to cheat</i>. It gets rejected.</td></tr>
-    <tr><td><b>Agreement (CRDT)</b><span class="tag">25%</span></td><td>Every entry has a "version number". When two notebooks disagree, everyone keeps the newer entry. Do that enough and all notebooks match, in any order, even after being cut off from each other.</td><td>Turn on <i>Split network</i>, send money on both sides, then turn it off. Watch them agree again.</td></tr>
-    <tr><td><b>Survives chaos</b><span class="tag">15%</span></td><td>Even with 80% of messages lost, nothing crashes. It's just slower.</td><td>Move the <i>Messages lost</i> slider.</td></tr>
+    <tr><td><b>Proof check</b><span class="tag">30%</span></td><td>Every transfer is <b>signed with a real digital signature</b> (ECDSA P-256), like a handwritten signature nobody can fake. Change one digit and the signature breaks. Signing with someone else's key fails. Sending more than you own is refused, and a repeated transfer is ignored.<br><i>Honest note: this proves who authorised a payment. It is not a zero-knowledge proof, which would also hide the amounts.</i></td><td>Press <i>Cheat: forge signature</i> or <i>Cheat: overspend</i>.</td></tr>
+    <tr><td><b>Agreement (CRDT)</b><span class="tag">25%</span></td><td>Devices simply swap the notes they have. Everyone's balance is then worked out from the same pile of notes in the same order, so identical piles always give identical balances, no matter who heard what first or when.</td><td>Press <i>Jam the middle</i>, send money on both sides, release it. Or drag nodes apart.</td></tr>
+    <tr><td><b>Survives chaos</b><span class="tag">15%</span></td><td>Radios only reach so far, and far links lose more packets. Notes hop device to device. Even at 80% loss, with nodes moving, switched off or attacked, nothing crashes; it is just slower.</td><td>Move the <i>Loss</i> and <i>Radio range</i> sliders, tick <i>Nodes move</i>, click a node to switch it off.</td></tr>
   </table>
 
   <h2>Fake-node attack (Sybil)</h2>
   <div class="box">
-    A "Sybil" attack is one cheater pretending to be many people. The button <i>Attack with fake node</i> floods the mesh with
-    a lie ("alice has a billion!"). With <b>Block unknown nodes</b> on, devices ignore anyone not on their list. Untick it and watch the lie spread.
+    A "Sybil" attack is one cheater pretending to be many people. The button <i>Attack: fake-node flood</i> floods devices with
+    forged transactions (including one that tries to drain alice). Because every transfer needs a valid signature, devices throw them all away.
+    Tick <b>Skip signature checks (unsafe)</b> and try again to watch the forgeries spread and corrupt balances.
+  </div>
+
+  <h2>Double spending</h2>
+  <div class="box">
+    <i>Story: spend the same money twice</i> splits the map, then alice pays 400 on each side. When the halves reconnect, every device
+    applies the same fixed rule, keeps <b>one</b> of the two payments and rejects the other. Total money stays at 650, so nothing is created.
   </div>
 
   <h2>The honest limits</h2>
   <div class="box">
     <ul>
-      <li><b>Double-spend:</b> if alice spends the same 400 on both sides of a split, the notebooks will agree afterward but only keep <i>one</i> of the two spends. They agree, but the money isn't conserved. Real systems need extra rules (consensus or real ZK balance proofs). The <i>Story: spend the same money twice</i> button shows this.</li>
-      <li>The "proof" is a stand-in, not real cryptography. The trusted list is fixed, not real identity.</li>
-      <li>Everything runs in your browser; the optional <i>Ask server</i> button calls a small Vercel function.</li>
+      <li><b>Which double-spend wins</b> is decided by a fixed tie-break rule, not by who was "really" first. Real systems add consensus, or hardware or ZK-based balance proofs, for stronger guarantees.</li>
+      <li>Signatures are real, but they are not zero-knowledge proofs. Starting balances are a fixed shared list, not real identity.</li>
+      <li>Everything runs in your browser; the optional <i>Ask server to verify</i> button calls a small Vercel function that re-checks the signature.</li>
     </ul>
   </div>
 
   <h2>Quick 60-second tour</h2>
   <ol>
-    <li>Open the demo. Leave "Messages lost" at 80%, press <b>Send</b>. Watch the red/blue dots, then the green ✔.</li>
-    <li>Press <b>Try to cheat</b>. See the rejection in "What just happened".</li>
-    <li>Turn <b>Split network</b> on, send on two different devices, turn it off. They reconcile.</li>
-    <li>Press <b>Attack with fake node</b>. It's blocked. Untick the block box and try again.</li>
-    <li>Press <b>Run automated audit</b> to see 4/4 requirements pass.</li>
+    <li>Open the demo and press <b>Send</b>. Watch the dots hop from radio to radio, some turning red (lost), until the status turns ✔.</li>
+    <li>Press <b>Cheat: forge signature</b> and <b>Cheat: overspend</b>. Read the rejections in "What just happened".</li>
+    <li>Drag a node out of range, or press <b>Jam the middle</b>, send on both sides, then reconnect.</li>
+    <li>Press <b>Attack: fake-node flood</b>. It's blocked. Tick the unsafe box and try again.</li>
+    <li>Press <b>Run automated audit</b> to see all four requirements pass.</li>
   </ol>
   <a class="cta" href="/">Open the live demo →</a>
 </div>
