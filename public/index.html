@@ -51,6 +51,8 @@
       <button id="send">Send</button>
       <button id="bad">Send forged proof</button>
       <button id="reset">Reset</button>
+      <button id="verifyApi">Verify on server</button>
+      <button id="dspend">Double-spend demo</button>
       <span style="color:var(--mut)">Tip: click a node to take it offline.</span>
     </div>
   </section>
@@ -232,6 +234,37 @@ $("audit").onclick=async()=>{
   log(`Audit: ${pass}/${res.length} passed`,pass===res.length?"ok":"bad");
 };
 window.__audit=audit;
+
+async function api(body){
+  const r=await fetch("/api/node",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  if(!r.ok)throw new Error("HTTP "+r.status);
+  return r.json();
+}
+$("verifyApi").onclick=async()=>{
+  const s=$("from").value,r=$("to").value,a=parseInt($("amt").value,10);
+  try{
+    const good=await api({action:"verify",proof:await makeProof(s,r,a,false)});
+    const bad=await api({action:"verify",proof:await makeProof(s,r,a,true)});
+    log(`Server verify: valid proof → ${good.valid}; forged → ${bad.valid} (${bad.reason})`,good.valid&&!bad.valid?"ok":"bad");
+  }catch(e){log("Server API unavailable (static preview) — deploy to Vercel to enable: "+e.message,"bad");}
+};
+
+// Double spend: alice (500) sends 400 on each side of a partition; CRDT converges to a single winner
+$("dspend").onclick=async()=>{
+  nodes.forEach(n=>{n.reset();n.online=true;});packets=[];
+  if(!partition)$("part").click();
+  log("Double-spend: alice sends 400 at n1 AND 400 at n4 while partitioned","info");
+  log("n1: "+await nodes[0].transfer(await makeProof("alice","bob",400,false)),"ok");
+  log("n4: "+await nodes[3].transfer(await makeProof("alice","bob",400,false)),"ok");
+  setTimeout(()=>{if(partition)$("part").click();log("Healed. Mesh converges to one value (LWW keeps one write; real systems need consensus/ZK balance proofs to prevent double spends).","info");},2500);
+};
+
+// persistence
+const KEY="mesh-ledger-v1";
+function save(){try{localStorage.setItem(KEY,JSON.stringify(nodes.map(n=>({l:n.ledger,c:n.clock,t:n.lamport,s:[...n.seen]}))));}catch{}}
+(function load(){try{const d=JSON.parse(localStorage.getItem(KEY)||"null");if(d&&d.length===nodes.length){d.forEach((x,i)=>{nodes[i].ledger=x.l;nodes[i].clock=x.c;nodes[i].lamport=x.t;nodes[i].seen=new Set(x.s);});log("Restored saved ledger state","info");}}catch{}})();
+setInterval(save,1500);
+$("reset").addEventListener("click",()=>{localStorage.removeItem(KEY);});
 log("Mesh online. 80% packet loss active.","info");
 </script>
 </body>

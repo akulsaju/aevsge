@@ -23,4 +23,10 @@ ZK-STARK verifier for production use.
 `public/index.html` is a static, dependency-free browser simulation of the mesh
 (drop-rate slider, partition toggle, transfers, forged proofs, Sybil injection).
 Deploy: `vercel --prod` from the repo root (or import the repo in Vercel; no build step).
-Preview locally: `python -m http.server -d public 3000`.
+Preview locally: `python -m http.server -d public 3000` (the `/api/node` buttons need a real deploy or `vercel dev`).
+
+`api/node.js` is a Vercel serverless function (`POST {action:"verify"|"merge"}`) running the
+same proof check and CRDT merge server-side. Tests: `node tests/api.test.js`.
+The demo also persists ledger state in `localStorage` and includes a double-spend scenario
+(per-key LWW converges but keeps only one conflicting write, so balances aren't conserved;
+real systems need consensus or ZK balance proofs).
