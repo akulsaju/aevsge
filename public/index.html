@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Mesh Ledger — live demo</title>
+<title>NodeArmor — live demo</title>
+<link rel="icon" type="image/png" href="/favicon.png">
 <style>
   :root { color-scheme: dark; --bg:#0b0f17; --card:#131a26; --fg:#e6edf3; --mut:#8b98a9; --ok:#3fb950; --bad:#f85149; --warn:#d29922; --acc:#58a6ff; }
   * { box-sizing: border-box; }
@@ -16,7 +17,8 @@
   @media (max-width:980px){ main{grid-template-columns:1fr;} }
   .card { background:var(--card); border:1px solid #232d3d; border-radius:10px; padding:14px; margin-bottom:16px; }
   main > section > .card:last-child { margin-bottom:0; }
-  nav { position:sticky; top:0; z-index:20; margin:0 0 12px; padding:10px 24px; background:rgba(11,15,23,.88); backdrop-filter:blur(8px); border-bottom:1px solid #232d3d; }
+  nav { position:sticky; top:0; z-index:20; margin:0 0 12px; padding:10px 24px; background:rgba(11,15,23,.97); border-bottom:1px solid #232d3d; }
+  .brand { display:flex; } .brand img { height:40px; width:auto; display:block; }
   header { display:contents; } header > h1, header > p.sub { padding:0 24px; }
   @media (min-width:981px){ main > section:first-child { position:sticky; top:56px; align-self:start; } }
   canvas { width:100%; height:auto; background:#0e1420; border-radius:8px; display:block; touch-action:none; }
@@ -61,7 +63,7 @@
 </head>
 <body>
 <header>
-  <nav><b>⏱ Mesh Ledger</b><a href="/" class="cur">Live demo</a><a href="/about.html">What is this? (plain English)</a><span id="topstat" class="pill" style="margin-left:auto"></span></nav>
+  <nav><a href="/" class="brand"><img src="/logo.png" alt="NodeArmor" height="34"></a><a href="/" class="cur">Live demo</a><a href="/about.html">What is this? (plain English)</a><span id="topstat" class="pill" style="margin-left:auto"></span></nav>
   <h1>A shared bank book that works with no internet</h1>
   <p class="sub">Seven radios pass signed money notes to whoever is in range. Packets get lost and nodes move, break and get attacked, yet the books still agree. <a href="/about.html">New here? Read the explainer →</a></p>
 </header>
