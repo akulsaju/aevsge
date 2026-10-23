@@ -16,6 +16,9 @@
   @media (max-width:980px){ main{grid-template-columns:1fr;} }
   .card { background:var(--card); border:1px solid #232d3d; border-radius:10px; padding:14px; margin-bottom:16px; }
   main > section > .card:last-child { margin-bottom:0; }
+  nav { position:sticky; top:0; z-index:20; margin:0 0 12px; padding:10px 24px; background:rgba(11,15,23,.88); backdrop-filter:blur(8px); border-bottom:1px solid #232d3d; }
+  header { display:contents; } header > h1, header > p.sub { padding:0 24px; }
+  @media (min-width:981px){ main > section:first-child { position:sticky; top:56px; align-self:start; } }
   canvas { width:100%; height:auto; background:#0e1420; border-radius:8px; display:block; touch-action:none; }
   .row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:8px; }
   button { background:#1f2a3c; color:var(--fg); border:1px solid #2d3b52; border-radius:6px; padding:6px 12px; cursor:pointer; font:inherit; }
@@ -58,7 +61,7 @@
 </head>
 <body>
 <header>
-  <nav><b>⏱ Mesh Ledger</b><a href="/" class="cur">Live demo</a><a href="/about.html">What is this? (plain English)</a></nav>
+  <nav><b>⏱ Mesh Ledger</b><a href="/" class="cur">Live demo</a><a href="/about.html">What is this? (plain English)</a><span id="topstat" class="pill" style="margin-left:auto"></span></nav>
   <h1>A shared bank book that works with no internet</h1>
   <p class="sub">Seven radios pass signed money notes to whoever is in range. Packets get lost and nodes move, break and get attacked, yet the books still agree. <a href="/about.html">New here? Read the explainer →</a></p>
 </header>
@@ -343,6 +346,7 @@ function renderPanels(){
   $("verdict").textContent=ok?"Every online device holds the same transactions, so the balances match.":"Some devices are missing transactions (red). Gossip keeps retrying; they catch up when they get a path.";
   if(ok&&!wasAgree&&lastTx){log(`Agreement reached ${((simNow-lastTx)/1000).toFixed(1)}s (sim time) after the last transaction`,"ok");}
   wasAgree=ok;
+  const ts=$("topstat");if(ts){ts.textContent=ok?"✔ All agree":"… Catching up";ts.style.background=ok?"#12361c":"#3d1a1d";ts.style.color=ok?"var(--ok)":"var(--bad)";}
   const refNode=nodes.find(n=>n.online&&A.keys.get(n)===A.ref),rb=refNode?refNode.compute().bal:{};
   const cols=["alice","bob","carol"];
   $("tbl").innerHTML="<tr><th>Node</th>"+cols.map(c=>`<th>${c}</th>`).join("")+"<th>total</th><th>tx</th></tr>"+nodes.map(n=>{
